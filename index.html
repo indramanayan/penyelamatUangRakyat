@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Berburu Koruptor</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #333;
+            font-family: 'Press Start 2P', cursive;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            image-rendering: pixelated; 
+            background: linear-gradient(to bottom, #87CEEB 0%, #87CEEB 40%, #50c878 40%, #45b069 100%);
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-shadow: 2px 2px 0 #000;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #score {
+            font-size: 20px;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+        
+        #level-indicator {
+            font-size: 16px;
+            color: #00ffff;
+            margin-bottom: 10px;
+        }
+
+        .bar-container {
+            width: 200px;
+            height: 20px;
+            border: 3px solid #000;
+            background: #555;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        #health-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #ff3333;
+            transition: width 0.1s;
+        }
+        
+        #ott-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #ff00ff; /* Ungu untuk Skill */
+            transition: width 0.1s;
+        }
+        
+        #ott-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        #buff-status {
+            font-size: 12px;
+            color: #00ff00;
+            min-height: 20px;
+            margin-top: 10px;
+        }
+
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border: 5px solid #fff;
+            z-index: 10;
+            box-shadow: 10px 10px 0 #000;
+        }
+        
+        /* Efek Visual Skill */
+        #flash-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 9;
+        }
+        
+        #level-up-msg {
+            display: none;
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff00ff;
+            font-size: 40px;
+            text-shadow: 4px 4px 0 #000;
+            z-index: 8;
+            text-align: center;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: translate(-50%, -50%) scale(1); }
+            to { transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        button {
+            background: #e74c3c;
+            color: white;
+            border: 4px solid #c0392b;
+            padding: 15px 32px;
+            font-size: 16px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background: #ff5e4d;
+        }
+        
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.7);
+            font-size: 10px;
+            pointer-events: none;
+        }
+
+        #loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="flash-overlay"></div>
+
+    <div id="ui-layer">
+        <div id="score">Uang Rakyat: Rp 0</div>
+        <div id="level-indicator">LEVEL 1</div>
+        
+        <div style="margin-bottom: 5px;">HP Polisi:</div>
+        <div class="bar-container">
+            <div id="health-bar"></div>
+        </div>
+
+        <div style="margin-bottom: 5px; color: #ff00ff;">JURUS OTT (SPASI):</div>
+        <div class="bar-container" style="border-color: #ff00ff;">
+            <div id="ott-bar"></div>
+            <div id="ott-label">READY</div>
+        </div>
+
+        <div id="buff-status"></div>
+    </div>
+    
+    <div id="level-up-msg">LEVEL 2!<br><span style="font-size:20px; color:white;">Boss Mafia Muncul!</span></div>
+
+    <div class="controls-hint">
+        WASD: Gerak | TAHAN KLIK: Tembak | SPASI: Jurus OTT
+    </div>
+
+    <div id="loader">MEMUAT ASET GAMBAR...</div>
+
+    <div id="game-over">
+        <h1 style="color: #ff3333; text-shadow: 3px 3px 0 #000;">GAME OVER</h1>
+        <p>Negara Rugi Bandar!</p>
+        <p id="final-score" style="color: #ffd700;">Total: Rp 0</p>
+        <button onclick="restartGame()">TANGKAP LAGI</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- ASSETS ---
+        const playerImg = new Image();
+        playerImg.src = 'asset-game/mcgm.png';
+        
+        const enemyImg = new Image();
+        enemyImg.src = 'asset-game/koruptor-removebg-preview.png';
+        
+        const bossImg = new Image();
+        bossImg.src = 'asset-game/Gemini_Generated_Image_sbsizlsbsizlsbsi-removebg-preview.png';
+
+        let imagesLoaded = { player: false, enemy: false, boss: false };
+
+        playerImg.onload = () => { imagesLoaded.player = true; checkLoad(); };
+        enemyImg.onload = () => { imagesLoaded.enemy = true; checkLoad(); };
+        bossImg.onload = () => { imagesLoaded.boss = true; checkLoad(); };
+        
+        playerImg.onerror = () => { console.log("Gagal load mcgm.png"); checkLoad(); };
+        enemyImg.onerror = () => { console.log("Gagal load koruptor.png"); checkLoad(); };
+        bossImg.onerror = () => { console.log("Gagal load boss image"); checkLoad(); };
+
+        function checkLoad() {
+            const loader = document.getElementById('loader');
+            if(loader) loader.style.opacity = 0;
+        }
+
+        // --- GAME VARIABLES ---
+        let score = 0;
+        let gameActive = true;
+        let frameCount = 0;
+        let difficultyMultiplier = 1;
+        let currentLevel = 1;
+
+        // Player Stats
+        const player = {
+            x: 0,
+            y: 0,
+            width: 50,
+            height: 70,
+            baseSpeed: 6,
+            speed: 6,
+            hp: 150, // Buff HP jadi 150
+            maxHp: 150,
+            damage: 1.2, // Buff Damage sedikit
+            facingRight: true,
+            isMoving: false,
+            buffTimer: 0,
+            buffType: null,
+            // Skill Variables
+            ottCooldown: 0,
+            ottMaxCooldown: 300, // Buff: Jadi 5 detik (sebelumnya 10s)
+            fireCooldown: 0,     
+            fireRate: 15         
+        };
+
+        const keys = { w: false, a: false, s: false, d: false, space: false };
+        const mouse = { x: 0, y: 0, down: false };
+        
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+        let items = [];
+        let floatingTexts = [];
+
+        // --- RESIZE ---
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if (frameCount === 0) {
+                player.x = canvas.width / 2;
+                player.y = canvas.height * 0.7;
+            }
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- INPUTS ---
+        window.addEventListener('keydown', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'w' || k === 'arrowup') keys.w = true;
+            if (k === 'a' || k === 'arrowleft') keys.a = true;
+            if (k === 's' || k === 'arrowdown') keys.s = true;
+            if (k === 'd' || k === 'arrowright') keys.d = true;
+            if (k === ' ' || e.code === 'Space') {
+                e.preventDefault(); 
+                keys.space = true;
+                activateUltimate();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'w' || k === 'arrowup') keys.w = false;
+            if (k === 'a' || k === 'arrowleft') keys.a = false;
+            if (k === 's' || k === 'arrowdown') keys.s = false;
+            if (k === 'd' || k === 'arrowright') keys.d = false;
+            if (k === ' ' || e.code === 'Space') keys.space = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        window.addEventListener('mousedown', () => {
+            mouse.down = true;
+            if(gameActive && player.fireCooldown <= 0) shoot();
+        });
+
+        window.addEventListener('mouseup', () => {
+            mouse.down = false;
+        });
+
+        // --- LEVEL & SKILL LOGIC ---
+        function checkLevelUp() {
+            if (currentLevel === 1 && score >= 50000000) {
+                currentLevel = 2;
+                document.getElementById('level-indicator').innerText = "LEVEL 2 - BOSS STAGE";
+                const msg = document.getElementById('level-up-msg');
+                msg.style.display = 'block';
+                setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                spawnEnemy(true); 
+            }
+        }
+
+        function activateUltimate() {
+            if (!gameActive) return;
+            if (player.ottCooldown > 0) return; 
+
+            player.ottCooldown = player.ottMaxCooldown;
+            
+            const flash = document.getElementById('flash-overlay');
+            flash.style.display = 'block';
+            setTimeout(() => { flash.style.display = 'none'; }, 200);
+
+            enemies.forEach(e => {
+                e.frozen = 180; 
+                e.hp -= 5; // Buff Damage OTT
+                createParticles(e.x, e.y, '#ff00ff', 5);
+            });
+
+            floatingTexts.push({
+                x: canvas.width/2, y: canvas.height/2,
+                text: "OTT !!!", color: "#ff00ff", life: 100, vy: -2, size: 40
+            });
+        }
+
+        // --- ITEM LOGIC ---
+        function spawnItem(x, y, force = false) {
+            // Buff: 30% chance untuk kroco (default), Force=true (100%) untuk Boss
+            if (!force && Math.random() > 0.30) return; 
+
+            const rand = Math.random();
+            let type = 'health';
+            if (rand > 0.4) type = 'speed';
+            if (rand > 0.7) type = 'damage';
+
+            items.push({
+                x: x, y: y, type: type, yOffset: 0, life: 600
+            });
+        }
+
+        function applyItemEffect(item) {
+            let text = ""; let color = "#fff";
+            if (item.type === 'health') {
+                player.hp = Math.min(player.maxHp, player.hp + 30); // Buff Heal
+                text = "+30 HP"; color = "#ff3333";
+            } else if (item.type === 'speed') {
+                player.speed = player.baseSpeed * 1.5;
+                player.buffType = 'speed'; player.buffTimer = 400; // Buff durasi item
+                text = "SPEED UP!"; color = "#00ffff";
+            } else if (item.type === 'damage') {
+                player.damage = 3;
+                player.buffType = 'damage'; player.buffTimer = 400; // Buff durasi item
+                text = "DAMAGE UP!"; color = "#ffff00";
+            }
+            floatingTexts.push({ x: player.x, y: player.y - 50, text: text, color: color, life: 60, vy: -1, size: 15 });
+            updateHealthUI();
+        }
+
+        // --- GAME LOGIC ---
+
+        function shoot() {
+            const startX = player.x; 
+            const startY = player.y - player.height/3; 
+            const angle = Math.atan2(mouse.y - startY, mouse.x - startX);
+            const isDamageBuff = player.damage > 2; // Cek damage buff aktif
+
+            bullets.push({
+                x: startX, y: startY,
+                vx: Math.cos(angle) * 15,
+                vy: Math.sin(angle) * 15,
+                color: isDamageBuff ? '#ff0000' : '#fff700',
+                radius: isDamageBuff ? 8 : 5,
+                damage: 1 * player.damage
+            });
+            
+            player.fireCooldown = player.fireRate; 
+        }
+
+        function spawnEnemy(forceBoss = false) {
+            const spawnLeft = Math.random() < 0.5;
+            const horizon = canvas.height * 0.4;
+            const y = Math.random() * (canvas.height - horizon - 50) + horizon + 25;
+            
+            let isBoss = false;
+            if (forceBoss) isBoss = true;
+            else if (currentLevel === 2) isBoss = Math.random() < 0.3;
+
+            let size = isBoss ? 90 : 60; 
+            let hp = isBoss ? 15 : (2 + Math.floor(difficultyMultiplier)); // Nerf HP Kroco
+            let speedBase = isBoss ? 0.8 : 1.3; // Nerf Speed Kroco
+            
+            const x = spawnLeft ? -size : canvas.width + size;
+            const speed = (Math.random() * speedBase + speedBase) + (difficultyMultiplier * 0.1);
+
+            enemies.push({
+                x: x, y: y,
+                width: isBoss ? 80 : 50, height: isBoss ? 100 : 70,
+                speed: speed,
+                hp: hp, maxHp: hp,
+                facingRight: spawnLeft,
+                type: isBoss ? 'boss' : 'normal',
+                scoreValue: isBoss ? 50000000 : 10000000,
+                frozen: 0 
+            });
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            updateHealthUI();
+            updateSkillUI();
+
+            if (player.fireCooldown > 0) player.fireCooldown--;
+            if (mouse.down && player.fireCooldown <= 0) {
+                shoot();
+            }
+
+            const buffStatusEl = document.getElementById('buff-status');
+            if (player.buffTimer > 0) {
+                player.buffTimer--;
+                let buffName = player.buffType === 'speed' ? "⚡ SPEED" : "💥 DAMAGE";
+                buffStatusEl.innerText = `${buffName}: ${(player.buffTimer/60).toFixed(1)}s`;
+                if (player.buffTimer <= 0) {
+                    player.speed = player.baseSpeed;
+                    player.damage = 1.2; // Reset ke damage base baru
+                    player.buffType = null;
+                }
+            } else {
+                buffStatusEl.innerText = "";
+            }
+
+            const horizon = canvas.height * 0.4;
+            player.isMoving = false;
+            if (keys.w && player.y > horizon) { player.y -= player.speed; player.isMoving = true; }
+            if (keys.s && player.y < canvas.height - 10) { player.y += player.speed; player.isMoving = true; }
+            if (keys.a && player.x > 20) { player.x -= player.speed; player.isMoving = true; }
+            if (keys.d && player.x < canvas.width - 20) { player.x += player.speed; player.isMoving = true; }
+            player.facingRight = mouse.x > player.x;
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.life--;
+                item.yOffset = Math.sin(frameCount * 0.1) * 5;
+                const dist = Math.hypot(player.x - item.x, player.y - item.y);
+                if (dist < 40) {
+                    applyItemEffect(item);
+                    items.splice(i, 1);
+                    continue;
+                }
+                if (item.life <= 0) items.splice(i, 1);
+            }
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.x += b.vx; b.y += b.vy;
+                if (b.x < -50 || b.x > canvas.width + 50 || b.y < -50 || b.y > canvas.height + 50) bullets.splice(i, 1);
+            }
+
+            difficultyMultiplier = 1 + (score / 20000000);
+            let spawnRate = Math.max(30, 80 - Math.floor(score / 10000000));
+            if (currentLevel === 2) spawnRate = Math.max(20, spawnRate - 10);
+            if (frameCount % spawnRate === 0) spawnEnemy();
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+
+                if (e.frozen > 0) {
+                    e.frozen--;
+                    e.x += (Math.random()-0.5)*2; 
+                } else {
+                    const dx = player.x - e.x;
+                    const dy = player.y - e.y;
+                    const dist = Math.hypot(dx, dy);
+                    
+                    e.x += (dx / dist) * e.speed;
+                    e.y += (dy / dist) * (e.speed * 0.6);
+                    e.facingRight = dx > 0;
+
+                    const hitDist = e.type === 'boss' ? 60 : 40;
+                    if (dist < hitDist) {
+                        player.hp -= 1;
+                        createParticles(player.x, player.y - 30, '#ff0000', 1);
+                        if (player.hp <= 0) endGame();
+                    }
+                }
+
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    let b = bullets[j];
+                    if (Math.abs(b.x - e.x) < e.width/1.5 && Math.abs(b.y - (e.y - e.height/2)) < e.height/1.5) {
+                        e.hp -= b.damage;
+                        bullets.splice(j, 1);
+                        createParticles(e.x, e.y - 30, '#fff', 2);
+                        
+                        if (e.hp <= 0) {
+                            createParticles(e.x, e.y - 30, '#2ecc71', 10);
+                            
+                            // LOGIC DROP BARU: Boss 100% drop (true), Kroco random (false)
+                            spawnItem(e.x, e.y, e.type === 'boss'); 
+                            
+                            enemies.splice(i, 1);
+                            score += e.scoreValue;
+                            document.getElementById('score').innerText = `Uang Rakyat: Rp ${score.toLocaleString('id-ID')}`;
+                            checkLevelUp();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            updateParticlesAndText();
+            frameCount++;
+        }
+
+        function updateParticlesAndText() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 0.05;
+                if (p.life <= 0 || p.y > canvas.height) particles.splice(i, 1);
+            }
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                let ft = floatingTexts[i];
+                ft.y += ft.vy; ft.life--;
+                if (ft.life <= 0) floatingTexts.splice(i, 1);
+            }
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 1) * 10,
+                    life: 1.0, color: color
+                });
+            }
+        }
+
+        // --- DRAWING ---
+
+        function draw() {
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height * 0.4);
+            ctx.fillStyle = '#555';
+            ctx.fillRect(0, canvas.height * 0.4, canvas.width, canvas.height * 0.6);
+            ctx.strokeStyle = '#333';
+            ctx.beginPath(); ctx.moveTo(0, canvas.height*0.4); ctx.lineTo(canvas.width, canvas.height*0.4); ctx.stroke();
+
+            let renderList = [];
+            renderList.push({type: 'player', obj: player});
+            enemies.forEach(e => renderList.push({type: 'enemy', obj: e}));
+            items.forEach(i => renderList.push({type: 'item', obj: i}));
+            
+            renderList.sort((a, b) => {
+                let ya = a.type === 'item' ? a.obj.y + 20 : a.obj.y;
+                let yb = b.type === 'item' ? b.obj.y + 20 : b.obj.y;
+                return ya - yb;
+            });
+
+            renderList.forEach(item => {
+                if(item.type !== 'item') drawShadow(item.obj.x, item.obj.y, item.obj.width);
+                else drawShadow(item.obj.x, item.obj.y, 30);
+            });
+
+            renderList.forEach(item => {
+                if (item.type === 'player') drawPlayer(item.obj);
+                if (item.type === 'enemy') drawEnemy(item.obj);
+                if (item.type === 'item') drawItem(item.obj);
+            });
+
+            bullets.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 6, 6);
+                ctx.globalAlpha = 1.0;
+            });
+
+            floatingTexts.forEach(ft => {
+                ctx.save();
+                ctx.fillStyle = ft.color;
+                ctx.font = `${ft.size || 15}px 'Press Start 2P'`;
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = 3;
+                ctx.textAlign = "center";
+                ctx.strokeText(ft.text, ft.x, ft.y);
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            });
+        }
+
+        function drawItem(item) {
+            ctx.save();
+            ctx.translate(item.x, item.y + item.yOffset - 30);
+            let color = '#fff'; let label = '?';
+            if (item.type === 'health') { color = '#ff3333'; label = '❤️'; }
+            if (item.type === 'speed') { color = '#00ffff'; label = '⚡'; }
+            if (item.type === 'damage') { color = '#ffff00'; label = '💥'; }
+
+            ctx.shadowColor = color; ctx.shadowBlur = 10;
+            ctx.fillStyle = color; ctx.fillRect(-15, -15, 30, 30);
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(-15, -15, 30, 30);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#000'; ctx.font = "16px sans-serif";
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(label, 0, 2);
+            ctx.restore();
+        }
+
+        function drawShadow(x, y, w) {
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(x, y, w/1.5, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawPlayer(p) {
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            if (!p.facingRight) ctx.scale(-1, 1);
+            
+            if (p.buffTimer > 0) {
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = p.buffType === 'speed' ? '#00ffff' : '#ffff00';
+                ctx.beginPath(); ctx.arc(0, -p.height/2, p.height, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+
+            const w = p.width; const h = p.height;
+            if (imagesLoaded.player) {
+                ctx.drawImage(playerImg, -w/2, -h, w, h);
+            } else {
+                ctx.fillStyle = '#fff'; ctx.fillRect(-w/2, -h, w, h*0.6); 
+                ctx.fillStyle = '#003366'; ctx.fillRect(-w/2, -h*0.4, w, h*0.4); 
+            }
+            ctx.restore();
+        }
+
+        function drawEnemy(e) {
+            ctx.save();
+            ctx.translate(e.x, e.y);
+            
+            if(e.frozen > 0) {
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+                ctx.beginPath(); ctx.arc(0, -e.height/2, e.height, 0, Math.PI*2); ctx.fill();
+            }
+
+            if (!e.facingRight) ctx.scale(-1, 1);
+            const w = e.width;
+            const h = e.height;
+
+            if (e.type === 'boss') {
+                if (imagesLoaded.boss) ctx.drawImage(bossImg, -w/2, -h, w, h);
+                else { ctx.fillStyle = '#4b0082'; ctx.fillRect(-w/2, -h, w, h); }
+            } else {
+                if (imagesLoaded.enemy) ctx.drawImage(enemyImg, -w/2, -h, w, h);
+                else { ctx.fillStyle = '#111'; ctx.fillRect(-w/2, -h, w, h); }
+            }
+            
+            if (e.hp < e.maxHp) {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(-20, -h - 20, 40, 5);
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(-20, -h - 20, 40 * (e.hp / e.maxHp), 5);
+            }
+
+            ctx.restore();
+        }
+
+        function updateHealthUI() {
+            const bar = document.getElementById('health-bar');
+            const pct = Math.max(0, (player.hp / player.maxHp) * 100);
+            bar.style.width = pct + '%';
+        }
+        
+        function updateSkillUI() {
+            if (player.ottCooldown > 0) {
+                player.ottCooldown--;
+                const pct = 100 - ((player.ottCooldown / player.ottMaxCooldown) * 100);
+                document.getElementById('ott-bar').style.width = pct + '%';
+                document.getElementById('ott-label').innerText = "COOLDOWN...";
+                document.getElementById('ott-bar').style.backgroundColor = '#555';
+            } else {
+                document.getElementById('ott-bar').style.width = '100%';
+                document.getElementById('ott-label').innerText = "TEKAN SPASI!";
+                document.getElementById('ott-bar').style.backgroundColor = '#ff00ff';
+            }
+        }
+
+        function endGame() {
+            gameActive = false;
+            document.getElementById('game-over').style.display = 'block';
+            document.getElementById('final-score').innerText = `Total: Rp ${score.toLocaleString('id-ID')}`;
+        }
+
+        window.restartGame = function() {
+            score = 0;
+            currentLevel = 1;
+            player.hp = 150; // Reset ke 150
+            player.x = canvas.width / 2;
+            player.y = canvas.height * 0.7;
+            player.speed = player.baseSpeed;
+            player.damage = 1.2;
+            player.buffTimer = 0;
+            player.ottCooldown = 0;
+            
+            bullets = [];
+            enemies = [];
+            particles = [];
+            items = [];
+            floatingTexts = [];
+            
+            gameActive = true;
+            document.getElementById('score').innerText = "Uang Rakyat: Rp 0";
+            document.getElementById('level-indicator').innerText = "LEVEL 1";
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('buff-status').innerText = "";
+            document.getElementById('level-up-msg').style.display = 'none';
+            updateHealthUI();
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+
+    </script>
+</body>
+</html>
