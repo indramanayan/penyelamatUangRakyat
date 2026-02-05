@@ -1,239 +1,189 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Mohon</title>
-    <style>
-      :root {
-        --bg-1: #f8efe8;
-        --bg-2: #f2d2c4;
-        --bg-3: #f7c9c9;
-        --ink: #1b0f0b;
-        --accent: #b12d22;
-        --soft: rgba(27, 15, 11, 0.16);
-      }
+<head>
+  <meta charset="UTF-8">
+  <title>⚠️ Dilarang Dibuka ⚠️</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Courier New", monospace;
+      background: black;
+      color: #00ff88;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    .card {
+      text-align: center;
+      background: rgba(0,0,0,0.85);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0,255,120,0.25);
+      max-width: 650px;
+      border: 1px solid #00ff88;
+    }
 
-      html,
-      body {
-        height: 100%;
-      }
+    h1 {
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
 
-      body {
-        margin: 0;
-        display: grid;
-        place-items: center;
-        background: radial-gradient(circle at 20% 20%, var(--bg-2), transparent 45%),
-          radial-gradient(circle at 80% 10%, var(--bg-3), transparent 40%),
-          linear-gradient(160deg, var(--bg-1), #fff8f2 60%, var(--bg-2));
-        color: var(--ink);
-        font-family: "Georgia", "Garamond", "Times New Roman", serif;
-        overflow: hidden;
-      }
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #00ff88;
+      cursor: pointer;
+      background: black;
+      color: #00ff88;
+      position: relative;
+      transition: 0.15s;
+    }
 
-      .page {
-        position: relative;
-        width: min(920px, 92vw);
-        padding: clamp(32px, 6vw, 72px);
-        border-radius: 32px;
-        background: rgba(255, 255, 255, 0.7);
-        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.08);
-        backdrop-filter: blur(6px);
-        animation: rise 1.3s ease-out both;
-      }
+    button:hover {
+      background: #003322;
+      transform: scale(1.05);
+    }
 
-      .halo {
-        position: absolute;
-        inset: -20%;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.6), transparent 55%);
-        opacity: 0.7;
-        filter: blur(10px);
-        animation: breathe 6s ease-in-out infinite;
-        pointer-events: none;
-      }
+    .hidden { display: none; }
 
-      h1 {
-        margin: 0;
-        text-align: center;
-        font-size: clamp(28px, 4vw, 46px);
-        letter-spacing: 0.03em;
-        font-weight: 700;
-      }
+    .terminal {
+      text-align: left;
+      font-size: 14px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      min-height: 160px;
+    }
 
-      .line {
-        display: block;
-        text-align: center;
-        font-size: clamp(24px, 6vw, 72px);
-        line-height: 1.05;
-        margin-top: clamp(14px, 3vw, 28px);
-        text-transform: lowercase;
-      }
+    .blink {
+      animation: blink 1s infinite;
+    }
 
-      .line strong {
-        color: var(--accent);
-        font-weight: 700;
-        display: inline-block;
-        transform-origin: center;
-        letter-spacing: 0.06em;
-        animation: plea 2.4s ease-in-out infinite;
-      }
+    @keyframes blink {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
 
-      .whisper {
-        margin: clamp(16px, 3vw, 28px) auto 0;
-        max-width: 520px;
-        text-align: center;
-        font-size: clamp(14px, 2.2vw, 18px);
-        color: rgba(27, 15, 11, 0.75);
-        letter-spacing: 0.02em;
-        animation: fade 2.2s ease-in-out 0.3s both;
-      }
+  <!-- STAGE 1 -->
+  <div class="card" id="stage1">
+    <h1>⛔ AKSES TERLARANG</h1>
+    <p>Halaman ini seharusnya tidak kamu buka.</p>
+    <button id="kaburBtn">Buka Paksa</button>
+  </div>
 
-      .signature {
-        margin: 12px auto 0;
-        text-align: center;
-        font-size: clamp(13px, 2vw, 16px);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: rgba(27, 15, 11, 0.6);
-        animation: fade 2.4s ease-in-out 0.5s both;
-      }
+  <!-- STAGE 2 TERMINAL MODE -->
+  <div class="card hidden" id="stage2">
+    <h1>MODE TERMINAL</h1>
+    <div class="terminal" id="terminal"></div>
+    <div class="blink">█</div>
+    <button onclick="stage3()">Aku Tetap Lanjut</button>
+  </div>
 
-      .hands {
-        margin: clamp(18px, 4vw, 32px) auto 0;
-        width: min(260px, 60vw);
-        height: 90px;
-        position: relative;
-      }
+  <!-- STAGE 3 -->
+  <div class="card hidden" id="stage3">
+    <h1 id="typeText"></h1>
+    <p id="typeSub"></p>
+    <button onclick="resetAll()">Ulangi Simulasi</button>
+  </div>
 
-      .hands::before,
-      .hands::after {
-        content: "";
-        position: absolute;
-        width: 120px;
-        height: 70px;
-        border-radius: 40px 40px 60px 60px;
-        background: #f1b9b0;
-        box-shadow: inset 0 -10px 18px rgba(0, 0, 0, 0.08);
-      }
+<script>
+// =====================
+// TOMBOL KABUR
+// =====================
+const btn = document.getElementById('kaburBtn');
+btn.addEventListener('mouseover', () => {
+  const x = Math.random() * (window.innerWidth - 150);
+  const y = Math.random() * (window.innerHeight - 80);
+  btn.style.position = 'fixed';
+  btn.style.left = x + 'px';
+  btn.style.top = y + 'px';
+});
 
-      .hands::before {
-        left: 0;
-        transform: rotate(-8deg);
-        animation: handsLeft 3s ease-in-out infinite;
-      }
+btn.addEventListener('click', () => {
+  stage2();
+});
 
-      .hands::after {
-        right: 0;
-        transform: rotate(8deg);
-        animation: handsRight 3s ease-in-out infinite;
-      }
+// =====================
+// TERMINAL TEXT TYPE
+// =====================
+const lines = [
+  'Menghubungi server rahasia...',
+  'Melewati firewall...',
+  'Mengabaikan peringatan...',
+  'Mengaktifkan protokol nekat...',
+  'Status: Kamu keras kepala.',
+  'Akses diberikan.'
+];
 
-      .pulse {
-        position: absolute;
-        inset: -30px;
-        border-radius: 40px;
-        border: 1px solid var(--soft);
-        animation: pulse 3.6s ease-in-out infinite;
-        pointer-events: none;
-      }
+function typeTerminal(i=0, j=0) {
+  const term = document.getElementById('terminal');
+  if (i >= lines.length) return;
 
-      @keyframes plea {
-        0%,
-        100% {
-          transform: scale(1);
-          text-shadow: none;
-        }
-        50% {
-          transform: scale(1.06);
-          text-shadow: 0 18px 36px rgba(177, 45, 34, 0.35);
-        }
-      }
+  if (j < lines[i].length) {
+    term.textContent += lines[i][j];
+    setTimeout(() => typeTerminal(i, j+1), 25);
+  } else {
+    term.textContent += '\n';
+    setTimeout(() => typeTerminal(i+1, 0), 300);
+  }
+}
 
-      @keyframes rise {
-        from {
-          opacity: 0;
-          transform: translateY(24px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
+// =====================
+// STAGES
+// =====================
+function stage2() {
+  document.getElementById('stage1').classList.add('hidden');
+  document.getElementById('stage2').classList.remove('hidden');
+  typeTerminal();
+}
 
-      @keyframes breathe {
-        0%,
-        100% {
-          opacity: 0.65;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 0.9;
-          transform: scale(1.03);
-        }
-      }
+function stage3() {
+  document.getElementById('stage2').classList.add('hidden');
+  document.getElementById('stage3').classList.remove('hidden');
+  typeText('KAMU AKAN MENYESAL...', 'Tapi ya cuma prank. Santai saja.');
+}
 
-      @keyframes handsLeft {
-        0%,
-        100% {
-          transform: translateY(0) rotate(-8deg);
-        }
-        50% {
-          transform: translateY(6px) rotate(-12deg);
-        }
-      }
+// =====================
+// TYPE EFFECT BESAR
+// =====================
+function typeText(title, sub) {
+  const t = document.getElementById('typeText');
+  const s = document.getElementById('typeSub');
+  t.textContent = '';
+  s.textContent = '';
 
-      @keyframes handsRight {
-        0%,
-        100% {
-          transform: translateY(0) rotate(8deg);
-        }
-        50% {
-          transform: translateY(6px) rotate(12deg);
-        }
-      }
+  let i = 0;
+  function typeTitle() {
+    if (i < title.length) {
+      t.textContent += title[i++];
+      setTimeout(typeTitle, 60);
+    } else {
+      typeSub();
+    }
+  }
 
-      @keyframes pulse {
-        0% {
-          opacity: 0;
-          transform: scale(0.96);
-        }
-        40% {
-          opacity: 0.7;
-        }
-        100% {
-          opacity: 0;
-          transform: scale(1.02);
-        }
-      }
+  let j = 0;
+  function typeSub() {
+    if (j < sub.length) {
+      s.textContent += sub[j++];
+      setTimeout(typeSub, 40);
+    }
+  }
 
-      @keyframes fade {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main class="page">
-      <div class="halo"></div>
-      <h1>mohon perhatian</h1>
-      <span class="line">
-        jangan buka web ini lagi,
-        <strong>tolong</strong>
-      </span>
-      <div class="hands"></div>
-      <p class="whisper">ini permintaan serius. mohon dihormati.</p>
-      <p class="signature">Malik Nabil Al-Fahriyan</p>
-      <div class="pulse"></div>
-    </main>
-  </body>
+  typeTitle();
+}
+
+function resetAll() {
+  location.reload();
+}
+</script>
+
+</body>
 </html>
