@@ -24,12 +24,11 @@
       box-shadow: 0 0 30px rgba(0,255,120,0.25);
       max-width: 650px;
       border: 1px solid #00ff88;
+      position: relative;
+      z-index: 2;
     }
 
-    h1 {
-      margin-bottom: 10px;
-      letter-spacing: 1px;
-    }
+    h1 { margin-bottom: 10px; letter-spacing: 1px; }
 
     button {
       margin-top: 20px;
@@ -44,10 +43,7 @@
       transition: 0.15s;
     }
 
-    button:hover {
-      background: #003322;
-      transform: scale(1.05);
-    }
+    button:hover { background: #003322; transform: scale(1.05); }
 
     .hidden { display: none; }
 
@@ -59,46 +55,89 @@
       min-height: 160px;
     }
 
-    .blink {
-      animation: blink 1s infinite;
+    .blink { animation: blink 1s infinite; }
+    @keyframes blink { 0%,50%,100%{opacity:1;} 25%,75%{opacity:0;} }
+
+    /* GLITCH LAYER */
+    #glitchLayer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      z-index: 5;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.05) 0px,
+        rgba(255,255,255,0.05) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      animation: glitchMove 0.2s infinite;
     }
 
-    @keyframes blink {
-      0%, 50%, 100% { opacity: 1; }
-      25%, 75% { opacity: 0; }
+    @keyframes glitchMove {
+      0% { transform: translate(0,0); }
+      20% { transform: translate(-5px,3px); }
+      40% { transform: translate(5px,-3px); }
+      60% { transform: translate(-3px,-2px); }
+      80% { transform: translate(3px,2px); }
+      100% { transform: translate(0,0); }
+    }
+
+    .fadeText {
+      font-size: 28px;
+      color: #ff4444;
+      opacity: 1;
+      transition: opacity 2s linear;
     }
   </style>
 </head>
 <body>
 
-  <!-- STAGE 1 -->
-  <div class="card" id="stage1">
-    <h1>⛔ AKSES TERLARANG</h1>
-    <p>Halaman ini seharusnya tidak kamu buka.</p>
-    <button id="kaburBtn">Buka Paksa</button>
-  </div>
+<div id="glitchLayer"></div>
 
-  <!-- STAGE 2 TERMINAL MODE -->
-  <div class="card hidden" id="stage2">
-    <h1>MODE TERMINAL</h1>
-    <div class="terminal" id="terminal"></div>
-    <div class="blink">█</div>
-    <button onclick="stage3()">Aku Tetap Lanjut</button>
-  </div>
+<!-- STAGE 1 -->
+<div class="card" id="stage1">
+  <h1>⛔ AKSES TERLARANG</h1>
+  <p>Halaman ini seharusnya tidak kamu buka.</p>
+  <button id="kaburBtn">Buka Paksa</button>
+</div>
 
-  <!-- STAGE 3 -->
-  <div class="card hidden" id="stage3">
-    <h1 id="typeText"></h1>
-    <p id="typeSub"></p>
-    <button onclick="resetAll()">Ulangi Simulasi</button>
-  </div>
+<!-- STAGE WARNING -->
+<div class="card hidden" id="stageWarn">
+  <h1 class="fadeText" id="warnText">SUDAH DIBILANG JANGAN DIBUKA</h1>
+</div>
+
+<!-- STAGE 2 TERMINAL -->
+<div class="card hidden" id="stage2">
+  <h1>MODE TERMINAL</h1>
+  <div class="terminal" id="terminal"></div>
+  <div class="blink">█</div>
+  <button onclick="stage3()">Aku Tetap Lanjut</button>
+</div>
+
+<!-- STAGE 3 -->
+<div class="card hidden" id="stage3">
+  <h1 id="typeText"></h1>
+  <p id="typeSub"></p>
+  <button onclick="resetAll()">Ulangi Simulasi</button>
+</div>
 
 <script>
 // =====================
-// TOMBOL KABUR
+// TOMBOL KABUR + COUNTER
 // =====================
 const btn = document.getElementById('kaburBtn');
+let kaburCount = 0;
+
 btn.addEventListener('mouseover', () => {
+  kaburCount++;
+
+  if (kaburCount >= 5) {
+    triggerWarning();
+    return;
+  }
+
   const x = Math.random() * (window.innerWidth - 150);
   const y = Math.random() * (window.innerHeight - 80);
   btn.style.position = 'fixed';
@@ -111,7 +150,53 @@ btn.addEventListener('click', () => {
 });
 
 // =====================
-// TERMINAL TEXT TYPE
+// WARNING + GLITCH → 404
+// =====================
+function triggerWarning() {
+  document.getElementById('stage1').classList.add('hidden');
+  const warn = document.getElementById('stageWarn');
+  warn.classList.remove('hidden');
+
+  const text = document.getElementById('warnText');
+
+  setTimeout(() => {
+    text.style.opacity = '0';
+  }, 800);
+
+  setTimeout(() => {
+    startGlitch();
+  }, 2500);
+}
+
+function startGlitch() {
+  const g = document.getElementById('glitchLayer');
+  g.style.opacity = '1';
+  document.body.style.background = '#111';
+
+  let shakes = 0;
+  const iv = setInterval(() => {
+    document.body.style.transform = `translate(${Math.random()*10-5}px, ${Math.random()*10-5}px)`;
+    shakes++;
+    if (shakes > 15) {
+      clearInterval(iv);
+      show404();
+    }
+  }, 80);
+}
+
+function show404() {
+  document.body.style.transform = 'none';
+  document.body.innerHTML = `
+    <div style="color:white;text-align:center;font-family:Arial">
+      <h1>404</h1>
+      <h2>Not Found</h2>
+      <p>Web tidak ditemukan.</p>
+    </div>
+  `;
+}
+
+// =====================
+// TERMINAL TEXT
 // =====================
 const lines = [
   'Menghubungi server rahasia...',
@@ -124,7 +209,7 @@ const lines = [
 
 function typeTerminal(i=0, j=0) {
   const term = document.getElementById('terminal');
-  if (i >= lines.length) return;
+  if (!term || i >= lines.length) return;
 
   if (j < lines[i].length) {
     term.textContent += lines[i][j];
@@ -136,7 +221,7 @@ function typeTerminal(i=0, j=0) {
 }
 
 // =====================
-// STAGES
+// STAGES NORMAL
 // =====================
 function stage2() {
   document.getElementById('stage1').classList.add('hidden');
@@ -150,12 +235,10 @@ function stage3() {
   typeText('KAMU AKAN MENYESAL...', 'Tapi ya cuma prank. Santai saja.');
 }
 
-// =====================
-// TYPE EFFECT BESAR
-// =====================
 function typeText(title, sub) {
   const t = document.getElementById('typeText');
   const s = document.getElementById('typeSub');
+  if (!t) return;
   t.textContent = '';
   s.textContent = '';
 
@@ -164,9 +247,7 @@ function typeText(title, sub) {
     if (i < title.length) {
       t.textContent += title[i++];
       setTimeout(typeTitle, 60);
-    } else {
-      typeSub();
-    }
+    } else typeSub();
   }
 
   let j = 0;
@@ -180,9 +261,7 @@ function typeText(title, sub) {
   typeTitle();
 }
 
-function resetAll() {
-  location.reload();
-}
+function resetAll() { location.reload(); }
 </script>
 
 </body>
